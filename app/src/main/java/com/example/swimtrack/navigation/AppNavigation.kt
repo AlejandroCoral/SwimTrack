@@ -7,9 +7,12 @@ import androidx.navigation.compose.rememberNavController
 import com.example.swimtrack.ui.screens.AddTrainingScreen
 import com.example.swimtrack.ui.screens.HomeScreen
 import com.example.swimtrack.ui.screens.SettingsScreen
+import com.example.swimtrack.viewmodel.TrainingViewModel
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    trainingViewModel: TrainingViewModel
+) {
 
     val navController = rememberNavController()
 
