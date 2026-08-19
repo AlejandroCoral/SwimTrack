@@ -8,6 +8,8 @@ import com.example.swimtrack.ui.screens.AddTrainingScreen
 import com.example.swimtrack.ui.screens.HomeScreen
 import com.example.swimtrack.ui.screens.SettingsScreen
 import com.example.swimtrack.viewmodel.TrainingViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @Composable
 fun AppNavigation(
@@ -15,6 +17,7 @@ fun AppNavigation(
 ) {
 
     val navController = rememberNavController()
+    val trainings by trainingViewModel.trainings.collectAsState()
 
     NavHost(
         navController = navController,
@@ -23,17 +26,30 @@ fun AppNavigation(
 
         composable("home") {
             HomeScreen(
+                trainings = trainings,
+
                 onAddTraining = {
                     navController.navigate("add_training")
                 },
+
                 onSettings = {
                     navController.navigate("settings")
+                },
+
+                onDeleteTraining = { training ->
+                    trainingViewModel.deleteTraining(training)
                 }
             )
         }
 
         composable("add_training") {
             AddTrainingScreen(
+                onSaveTraining = { training ->
+
+                    trainingViewModel.insertTraining(training)
+
+                    navController.popBackStack()
+                },
                 onBack = {
                     navController.popBackStack()
                 }
