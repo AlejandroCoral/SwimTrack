@@ -2,6 +2,7 @@ package com.example.swimtrack.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -26,8 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.swimtrack.data.local.TrainingEntity
@@ -43,17 +44,12 @@ fun AddTrainingScreen(
 
     var style by remember { mutableStateOf("") }
     var distance by remember { mutableStateOf("") }
-
-    // Aquí guardamos solamente números.
-    // Ejemplo: 11840 -> 1:18.40
     var timeDigits by remember { mutableStateOf("") }
-
     var date by remember { mutableStateOf("") }
     var observation by remember { mutableStateOf("") }
 
+    var errorMessage by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
-
-    val focusManager = LocalFocusManager.current
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Color.Black,
@@ -79,10 +75,12 @@ fun AddTrainingScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // ESTILO
         OutlinedTextField(
             value = style,
-            onValueChange = {
-                style = it
+            onValueChange = { newValue ->
+                style = capitalizeFirstLetter(newValue)
+                errorMessage = ""
             },
             label = {
                 Text("Estilo")
@@ -90,6 +88,10 @@ fun AddTrainingScreen(
             placeholder = {
                 Text("Ej. Libre")
             },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                keyboardType = KeyboardType.Text
+            ),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             colors = fieldColors
@@ -97,12 +99,15 @@ fun AddTrainingScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // DISTANCIA
         OutlinedTextField(
             value = distance,
             onValueChange = { newValue ->
+                distance = newValue
+                    .filter { it.isDigit() }
+                    .take(4)
 
-                // Solo permite números.
-                distance = newValue.filter { it.isDigit() }
+                errorMessage = ""
             },
             label = {
                 Text("Distancia")
@@ -123,26 +128,37 @@ fun AddTrainingScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // TIEMPO
         OutlinedTextField(
-            value = formatTime(timeDigits),
+            value = timeDigits,
             onValueChange = { newValue ->
 
-                /*
-                 * Eliminamos automáticamente ":" y "."
-                 * y conservamos únicamente números.
-                 *
-                 * Máximo:
-                 * 999:59.99
-                 */
                 timeDigits = newValue
                     .filter { it.isDigit() }
                     .take(7)
+
+                errorMessage = ""
             },
             label = {
                 Text("Tiempo")
             },
             placeholder = {
-                Text("Ej. escribe 11840 → 1:18.40")
+                Text("Ej. 11840")
+            },
+            supportingText = {
+
+                if (timeDigits.isEmpty()) {
+
+                    Text(
+                        text = "Escribe solo números. Ej: 11840 = 1:18.40"
+                    )
+
+                } else {
+
+                    Text(
+                        text = "Tiempo: ${formatTime(timeDigits)}"
+                    )
+                }
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number
@@ -154,31 +170,45 @@ fun AddTrainingScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        OutlinedTextField(
-            value = date,
-            onValueChange = {},
-            readOnly = true,
-            label = {
-                Text("Fecha")
-            },
-            placeholder = {
-                Text("Seleccionar fecha")
-            },
+        // FECHA
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    focusManager.clearFocus()
                     showDatePicker = true
+                    errorMessage = ""
+                }
+        ) {
+
+            OutlinedTextField(
+                value = date,
+                onValueChange = {},
+                readOnly = true,
+                enabled = false,
+                label = {
+                    Text("Fecha")
                 },
-            colors = fieldColors
-        )
+                placeholder = {
+                    Text("Toca para seleccionar")
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = Color.Black,
+                    disabledLabelColor = Color.DarkGray,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledPlaceholderColor = Color.Gray
+                )
+            )
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // OBSERVACIÓN
         OutlinedTextField(
             value = observation,
-            onValueChange = {
-                observation = it
+            onValueChange = { newValue ->
+
+                observation = capitalizeFirstLetter(newValue)
             },
             label = {
                 Text("Observación")
@@ -186,6 +216,10 @@ fun AddTrainingScreen(
             placeholder = {
                 Text("Opcional")
             },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                keyboardType = KeyboardType.Text
+            ),
             modifier = Modifier.fillMaxWidth(),
             minLines = 3,
             maxLines = 4,
@@ -194,23 +228,39 @@ fun AddTrainingScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // BOTÓN GUARDAR
         Button(
             onClick = {
 
                 val distanceNumber = distance.toIntOrNull()
-                val formattedTime = formatTime(timeDigits)
 
-                if (
-                    style.isNotBlank() &&
-                    distanceNumber != null &&
-                    isValidTime(timeDigits) &&
-                    date.isNotBlank()
-                ) {
+                errorMessage = when {
+
+                    style.isBlank() ->
+                        "Debes ingresar el estilo."
+
+                    distanceNumber == null || distanceNumber <= 0 ->
+                        "Debes ingresar una distancia válida."
+
+                    timeDigits.isBlank() ->
+                        "Debes ingresar el tiempo."
+
+                    !isValidTime(timeDigits) ->
+                        "El tiempo ingresado no es válido."
+
+                    date.isBlank() ->
+                        "Debes seleccionar una fecha."
+
+                    else ->
+                        ""
+                }
+
+                if (errorMessage.isEmpty()) {
 
                     val training = TrainingEntity(
                         style = style.trim(),
-                        distance = distanceNumber,
-                        time = formattedTime,
+                        distance = distanceNumber!!,
+                        time = formatTime(timeDigits),
                         date = date,
                         observation = observation.trim()
                     )
@@ -220,19 +270,35 @@ fun AddTrainingScreen(
             },
             modifier = Modifier.fillMaxWidth()
         ) {
+
             Text("Guardar entrenamiento")
+        }
+
+        // MENSAJE DE ERROR
+        if (errorMessage.isNotEmpty()) {
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // BOTÓN VOLVER
         Button(
             onClick = onBack,
             modifier = Modifier.fillMaxWidth()
         ) {
+
             Text("Volver")
         }
     }
 
+    // CALENDARIO
     if (showDatePicker) {
 
         val datePickerState = rememberDatePickerState()
@@ -241,6 +307,7 @@ fun AddTrainingScreen(
             onDismissRequest = {
                 showDatePicker = false
             },
+
             confirmButton = {
 
                 TextButton(
@@ -253,8 +320,8 @@ fun AddTrainingScreen(
                                 .atZone(ZoneId.of("UTC"))
                                 .toLocalDate()
 
-                            val formatter = DateTimeFormatter
-                                .ofPattern("dd/MM/yyyy")
+                            val formatter =
+                                DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
                             date = selectedDate.format(formatter)
                         }
@@ -262,9 +329,11 @@ fun AddTrainingScreen(
                         showDatePicker = false
                     }
                 ) {
+
                     Text("Aceptar")
                 }
             },
+
             dismissButton = {
 
                 TextButton(
@@ -272,6 +341,7 @@ fun AddTrainingScreen(
                         showDatePicker = false
                     }
                 ) {
+
                     Text("Cancelar")
                 }
             }
@@ -284,60 +354,56 @@ fun AddTrainingScreen(
     }
 }
 
-/**
- * Convierte una entrada únicamente numérica
- * en un tiempo de natación.
+/*
+ * Convierte números en formato de tiempo.
  *
- * Ejemplos:
- *
- * 4       -> 0.04
- * 45      -> 0.45
- * 452     -> 4.52
- * 4520    -> 45.20
- * 11840   -> 1:18.40
- * 20315   -> 2:03.15
+ * 4520  -> 45.20
+ * 11840 -> 1:18.40
+ * 20315 -> 2:03.15
  */
 private fun formatTime(digits: String): String {
 
-    if (digits.isEmpty()) {
+    val clean = digits.filter { it.isDigit() }
+
+    if (clean.isEmpty()) {
         return ""
     }
 
-    val clean = digits.filter { it.isDigit() }
-
     return when {
 
-        clean.length == 1 -> {
+        clean.length == 1 ->
             "0.0$clean"
-        }
 
-        clean.length == 2 -> {
+        clean.length == 2 ->
             "0.$clean"
-        }
 
-        clean.length == 3 -> {
+        clean.length == 3 ->
             "${clean.substring(0, 1)}.${clean.substring(1)}"
-        }
 
-        clean.length == 4 -> {
+        clean.length == 4 ->
             "${clean.substring(0, 2)}.${clean.substring(2)}"
-        }
 
         else -> {
 
-            val hundredths = clean.takeLast(2)
+            val hundredths =
+                clean.takeLast(2)
 
-            val seconds = clean
-                .dropLast(2)
-                .takeLast(2)
+            val seconds =
+                clean
+                    .dropLast(2)
+                    .takeLast(2)
 
-            val minutes = clean.dropLast(4)
+            val minutes =
+                clean.dropLast(4)
 
             "$minutes:$seconds.$hundredths"
         }
     }
 }
 
+/*
+ * Comprueba que el tiempo tenga sentido.
+ */
 private fun isValidTime(digits: String): Boolean {
 
     val clean = digits.filter { it.isDigit() }
@@ -360,4 +426,26 @@ private fun isValidTime(digits: String): Boolean {
     }
 
     return true
+}
+
+/*
+ * Hace que la primera letra sea mayúscula.
+ *
+ * libre -> Libre
+ * prueba inicial -> Prueba inicial
+ */
+private fun capitalizeFirstLetter(text: String): String {
+
+    if (text.isEmpty()) {
+        return text
+    }
+
+    return text.replaceFirstChar { char ->
+
+        if (char.isLowerCase()) {
+            char.titlecase()
+        } else {
+            char.toString()
+        }
+    }
 }
