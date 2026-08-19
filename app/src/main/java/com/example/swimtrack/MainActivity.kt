@@ -4,42 +4,102 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModelProvider
 import com.example.swimtrack.data.local.SwimTrackDatabase
+import com.example.swimtrack.data.preferences.UserPreferencesRepository
 import com.example.swimtrack.navigation.AppNavigation
 import com.example.swimtrack.repository.TrainingRepository
 import com.example.swimtrack.ui.theme.SwimTrackTheme
+import com.example.swimtrack.viewmodel.SettingsViewModel
+import com.example.swimtrack.viewmodel.SettingsViewModelFactory
 import com.example.swimtrack.viewmodel.TrainingViewModel
 import com.example.swimtrack.viewmodel.TrainingViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var trainingViewModel: TrainingViewModel
+    private lateinit var trainingViewModel:
+            TrainingViewModel
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    private lateinit var settingsViewModel:
+            SettingsViewModel
+
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
+
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
 
-        val database = SwimTrackDatabase.getDatabase(applicationContext)
+        /*
+         * ROOM
+         */
 
-        val repository = TrainingRepository(
-            database.trainingDao()
-        )
+        val database =
+            SwimTrackDatabase.getDatabase(
+                applicationContext
+            )
 
-        val factory = TrainingViewModelFactory(repository)
+        val trainingRepository =
+            TrainingRepository(
+                database.trainingDao()
+            )
 
-        trainingViewModel = ViewModelProvider(
-            this,
-            factory
-        )[TrainingViewModel::class.java]
+        val trainingFactory =
+            TrainingViewModelFactory(
+                trainingRepository
+            )
+
+        trainingViewModel =
+            ViewModelProvider(
+                this,
+                trainingFactory
+            )[TrainingViewModel::class.java]
+
+        /*
+         * DATASTORE
+         */
+
+        val preferencesRepository =
+            UserPreferencesRepository(
+                applicationContext
+            )
+
+        val settingsFactory =
+            SettingsViewModelFactory(
+                preferencesRepository
+            )
+
+        settingsViewModel =
+            ViewModelProvider(
+                this,
+                settingsFactory
+            )[SettingsViewModel::class.java]
+
+        /*
+         * COMPOSE
+         */
 
         setContent {
 
-            SwimTrackTheme {
+            val darkMode by
+            settingsViewModel
+                .darkMode
+                .collectAsState()
+
+            SwimTrackTheme(
+                darkTheme = darkMode,
+                dynamicColor = false
+            ) {
 
                 AppNavigation(
-                    trainingViewModel = trainingViewModel
+                    trainingViewModel =
+                        trainingViewModel,
+
+                    settingsViewModel =
+                        settingsViewModel
                 )
             }
         }
