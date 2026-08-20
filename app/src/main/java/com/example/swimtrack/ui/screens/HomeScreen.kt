@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.swimtrack.data.local.TrainingEntity
@@ -57,56 +58,39 @@ fun HomeScreen(
                 ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
 
-            val fineLocationGranted =
+            val fineGranted =
                 permissions[
                     Manifest.permission.ACCESS_FINE_LOCATION
                 ] == true
 
-            val coarseLocationGranted =
+            val coarseGranted =
                 permissions[
                     Manifest.permission.ACCESS_COARSE_LOCATION
                 ] == true
 
-            if (
-                fineLocationGranted ||
-                coarseLocationGranted
-            ) {
-
+            if (fineGranted || coarseGranted) {
                 permissionDenied = false
                 onRequestLocation()
-
             } else {
-
                 permissionDenied = true
             }
         }
 
-    /*
-     * Al abrir Home verificamos si ya existe
-     * permiso de ubicación.
-     *
-     * Si existe, obtenemos la ubicación.
-     * Si no, Android mostrará la solicitud.
-     */
-
     LaunchedEffect(Unit) {
 
-        val fineLocationGranted =
+        val fineGranted =
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
 
-        val coarseLocationGranted =
+        val coarseGranted =
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
 
-        if (
-            fineLocationGranted ||
-            coarseLocationGranted
-        ) {
+        if (fineGranted || coarseGranted) {
 
             onRequestLocation()
 
@@ -129,7 +113,13 @@ fun HomeScreen(
 
         Text(
             text = "SwimTrack",
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = "Control de entrenamientos de natación",
+            style = MaterialTheme.typography.bodyMedium
         )
 
         Spacer(
@@ -137,7 +127,7 @@ fun HomeScreen(
         )
 
         /*
-         * UBICACIÓN
+         * ESTADO DE UBICACIÓN
          */
 
         Card(
@@ -150,7 +140,8 @@ fun HomeScreen(
 
                 Text(
                     text = "Ubicación",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Spacer(
@@ -161,18 +152,16 @@ fun HomeScreen(
 
                     Text(
                         text =
-                            "El permiso de ubicación fue rechazado. " +
-                                    "SwimTrack necesita la ubicación para consultar " +
-                                    "las condiciones meteorológicas de tu zona."
+                            "El acceso a la ubicación fue rechazado. " +
+                                    "Se necesita para consultar el clima de tu zona."
                     )
 
                     Spacer(
-                        modifier = Modifier.height(8.dp)
+                        modifier = Modifier.height(10.dp)
                     )
 
                     Button(
                         onClick = {
-
                             locationPermissionLauncher.launch(
                                 arrayOf(
                                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -181,7 +170,7 @@ fun HomeScreen(
                             )
                         }
                     ) {
-                        Text("Permitir ubicación")
+                        Text("Conceder permiso")
                     }
 
                 } else {
@@ -191,8 +180,7 @@ fun HomeScreen(
                         is LocationUiState.Idle -> {
 
                             Text(
-                                text =
-                                    "Esperando permiso de ubicación..."
+                                text = "Esperando ubicación..."
                             )
                         }
 
@@ -206,8 +194,7 @@ fun HomeScreen(
                                 CircularProgressIndicator()
 
                                 Text(
-                                    text =
-                                        "Obteniendo ubicación..."
+                                    text = "Obteniendo ubicación..."
                                 )
                             }
                         }
@@ -228,13 +215,13 @@ fun HomeScreen(
                             )
 
                             Spacer(
-                                modifier = Modifier.height(8.dp)
+                                modifier = Modifier.height(10.dp)
                             )
 
                             Button(
                                 onClick = onRequestLocation
                             ) {
-                                Text("Reintentar ubicación")
+                                Text("Reintentar")
                             }
                         }
                     }
@@ -243,7 +230,7 @@ fun HomeScreen(
         }
 
         Spacer(
-            modifier = Modifier.height(16.dp)
+            modifier = Modifier.height(12.dp)
         )
 
         /*
@@ -260,7 +247,8 @@ fun HomeScreen(
 
                 Text(
                     text = "Condiciones para entrenar",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Spacer(
@@ -271,16 +259,26 @@ fun HomeScreen(
 
                     is WeatherUiState.Loading -> {
 
-                        Row(
-                            horizontalArrangement =
-                                Arrangement.spacedBy(12.dp)
-                        ) {
-
-                            CircularProgressIndicator()
+                        if (locationUiState is LocationUiState.Error) {
 
                             Text(
-                                text = "Obteniendo clima..."
+                                text =
+                                    "Necesitamos una ubicación válida para consultar el clima."
                             )
+
+                        } else {
+
+                            Row(
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(12.dp)
+                            ) {
+
+                                CircularProgressIndicator()
+
+                                Text(
+                                    text = "Consultando clima..."
+                                )
+                            }
                         }
                     }
 
@@ -313,7 +311,7 @@ fun HomeScreen(
                         )
 
                         Spacer(
-                            modifier = Modifier.height(8.dp)
+                            modifier = Modifier.height(10.dp)
                         )
 
                         Button(
@@ -331,7 +329,7 @@ fun HomeScreen(
         )
 
         /*
-         * BOTONES PRINCIPALES
+         * ACCIONES
          */
 
         Row(
@@ -356,7 +354,7 @@ fun HomeScreen(
         }
 
         Spacer(
-            modifier = Modifier.height(16.dp)
+            modifier = Modifier.height(20.dp)
         )
 
         /*
@@ -365,7 +363,8 @@ fun HomeScreen(
 
         Text(
             text = "Entrenamientos registrados",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
 
         Spacer(
@@ -376,14 +375,14 @@ fun HomeScreen(
 
             Text(
                 text =
-                    "No hay entrenamientos registrados"
+                    "Todavía no hay entrenamientos registrados."
             )
 
         } else {
 
             LazyColumn(
                 verticalArrangement =
-                    Arrangement.spacedBy(8.dp)
+                    Arrangement.spacedBy(10.dp)
             ) {
 
                 items(
@@ -405,7 +404,14 @@ fun HomeScreen(
                                 text =
                                     "${training.style} - ${training.distance} m",
                                 style =
-                                    MaterialTheme.typography.titleSmall
+                                    MaterialTheme.typography.titleSmall,
+                                fontWeight =
+                                    FontWeight.Bold
+                            )
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(4.dp)
                             )
 
                             Text(
@@ -431,7 +437,7 @@ fun HomeScreen(
 
                             Spacer(
                                 modifier =
-                                    Modifier.height(8.dp)
+                                    Modifier.height(10.dp)
                             )
 
                             Button(

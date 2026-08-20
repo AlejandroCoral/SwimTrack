@@ -58,7 +58,7 @@ class LocationViewModel(
 
                 _uiState.value =
                     LocationUiState.Error(
-                        "No se pudo obtener la ubicación del dispositivo."
+                        "No se pudo obtener la ubicación. Verifica que la ubicación del teléfono esté activada."
                     )
             }
         }
