@@ -12,18 +12,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.swimtrack.data.local.TrainingEntity
+import com.example.swimtrack.viewmodel.WeatherUiState
 
 @Composable
 fun HomeScreen(
     trainings: List<TrainingEntity>,
+    weatherUiState: WeatherUiState,
     onAddTraining: () -> Unit,
     onSettings: () -> Unit,
-    onDeleteTraining: (TrainingEntity) -> Unit
+    onDeleteTraining: (TrainingEntity) -> Unit,
+    onRetryWeather: () -> Unit
 ) {
 
     Column(
@@ -32,13 +37,114 @@ fun HomeScreen(
             .padding(16.dp)
     ) {
 
-        Text(text = "SwimTrack")
+        Text(
+            text = "SwimTrack",
+            style = MaterialTheme.typography.headlineMedium
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        /*
+         * TARJETA DEL CLIMA
+         */
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+
+                Text(
+                    text = "Condiciones para entrenar",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
+
+                when (weatherUiState) {
+
+                    is WeatherUiState.Loading -> {
+
+                        Row(
+                            horizontalArrangement =
+                                Arrangement.spacedBy(12.dp)
+                        ) {
+
+                            CircularProgressIndicator()
+
+                            Text(
+                                text = "Obteniendo clima..."
+                            )
+                        }
+                    }
+
+                    is WeatherUiState.Success -> {
+
+                        val weather =
+                            weatherUiState.weather.current
+
+                        Text(
+                            text = "Ubicación: Quito"
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(4.dp)
+                        )
+
+                        Text(
+                            text =
+                                "Temperatura: ${weather.temperature} °C"
+                        )
+
+                        Text(
+                            text =
+                                "Humedad: ${weather.humidity} %"
+                        )
+
+                        Text(
+                            text =
+                                "Viento: ${weather.windSpeed} km/h"
+                        )
+                    }
+
+                    is WeatherUiState.Error -> {
+
+                        Text(
+                            text = weatherUiState.message
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(8.dp)
+                        )
+
+                        Button(
+                            onClick = onRetryWeather
+                        ) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        /*
+         * BOTONES PRINCIPALES
+         */
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
         ) {
 
             Button(
@@ -56,16 +162,34 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        /*
+         * LISTA DE ENTRENAMIENTOS
+         */
+
+        Text(
+            text = "Entrenamientos registrados",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
 
         if (trainings.isEmpty()) {
 
-            Text("No hay entrenamientos registrados")
+            Text(
+                text = "No hay entrenamientos registrados"
+            )
 
         } else {
 
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement =
+                    Arrangement.spacedBy(8.dp)
             ) {
 
                 items(
@@ -78,32 +202,48 @@ fun HomeScreen(
                     ) {
 
                         Column(
-                            modifier = Modifier.padding(16.dp)
+                            modifier =
+                                Modifier.padding(16.dp)
                         ) {
 
                             Text(
-                                text = "${training.style} - ${training.distance} m"
+                                text =
+                                    "${training.style} - ${training.distance} m",
+                                style =
+                                    MaterialTheme.typography.titleSmall
                             )
 
                             Text(
-                                text = "Tiempo: ${training.time}"
+                                text =
+                                    "Tiempo: ${training.time}"
                             )
 
                             Text(
-                                text = "Fecha: ${training.date}"
+                                text =
+                                    "Fecha: ${training.date}"
                             )
 
-                            if (training.observation.isNotBlank()) {
+                            if (
+                                training.observation
+                                    .isNotBlank()
+                            ) {
+
                                 Text(
-                                    text = "Observación: ${training.observation}"
+                                    text =
+                                        "Observación: ${training.observation}"
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(
+                                modifier =
+                                    Modifier.height(8.dp)
+                            )
 
                             Button(
                                 onClick = {
-                                    onDeleteTraining(training)
+                                    onDeleteTraining(
+                                        training
+                                    )
                                 }
                             ) {
                                 Text("Eliminar")

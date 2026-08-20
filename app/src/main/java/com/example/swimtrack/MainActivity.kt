@@ -9,33 +9,32 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModelProvider
 import com.example.swimtrack.data.local.SwimTrackDatabase
 import com.example.swimtrack.data.preferences.UserPreferencesRepository
+import com.example.swimtrack.data.remote.RetrofitInstance
 import com.example.swimtrack.navigation.AppNavigation
 import com.example.swimtrack.repository.TrainingRepository
+import com.example.swimtrack.repository.WeatherRepository
 import com.example.swimtrack.ui.theme.SwimTrackTheme
 import com.example.swimtrack.viewmodel.SettingsViewModel
 import com.example.swimtrack.viewmodel.SettingsViewModelFactory
 import com.example.swimtrack.viewmodel.TrainingViewModel
 import com.example.swimtrack.viewmodel.TrainingViewModelFactory
+import com.example.swimtrack.viewmodel.WeatherViewModel
+import com.example.swimtrack.viewmodel.WeatherViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var trainingViewModel:
-            TrainingViewModel
+    private lateinit var trainingViewModel: TrainingViewModel
+    private lateinit var settingsViewModel: SettingsViewModel
+    private lateinit var weatherViewModel: WeatherViewModel
 
-    private lateinit var settingsViewModel:
-            SettingsViewModel
-
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
-
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
 
-        /*
-         * ROOM
-         */
+        // -------------------------
+        // ROOM
+        // -------------------------
 
         val database =
             SwimTrackDatabase.getDatabase(
@@ -58,9 +57,9 @@ class MainActivity : ComponentActivity() {
                 trainingFactory
             )[TrainingViewModel::class.java]
 
-        /*
-         * DATASTORE
-         */
+        // -------------------------
+        // DATASTORE
+        // -------------------------
 
         val preferencesRepository =
             UserPreferencesRepository(
@@ -78,9 +77,29 @@ class MainActivity : ComponentActivity() {
                 settingsFactory
             )[SettingsViewModel::class.java]
 
-        /*
-         * COMPOSE
-         */
+        // -------------------------
+        // RETROFIT
+        // -------------------------
+
+        val weatherRepository =
+            WeatherRepository(
+                RetrofitInstance.weatherApi
+            )
+
+        val weatherFactory =
+            WeatherViewModelFactory(
+                weatherRepository
+            )
+
+        weatherViewModel =
+            ViewModelProvider(
+                this,
+                weatherFactory
+            )[WeatherViewModel::class.java]
+
+        // -------------------------
+        // COMPOSE
+        // -------------------------
 
         setContent {
 
@@ -95,11 +114,9 @@ class MainActivity : ComponentActivity() {
             ) {
 
                 AppNavigation(
-                    trainingViewModel =
-                        trainingViewModel,
-
-                    settingsViewModel =
-                        settingsViewModel
+                    trainingViewModel = trainingViewModel,
+                    settingsViewModel = settingsViewModel,
+                    weatherViewModel = weatherViewModel
                 )
             }
         }

@@ -3,6 +3,7 @@ package com.example.swimtrack.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -11,18 +12,47 @@ import com.example.swimtrack.ui.screens.HomeScreen
 import com.example.swimtrack.ui.screens.SettingsScreen
 import com.example.swimtrack.viewmodel.SettingsViewModel
 import com.example.swimtrack.viewmodel.TrainingViewModel
+import com.example.swimtrack.viewmodel.WeatherViewModel
 
 @Composable
 fun AppNavigation(
     trainingViewModel: TrainingViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    weatherViewModel: WeatherViewModel
 ) {
 
-    val navController = rememberNavController()
+    val navController =
+        rememberNavController()
 
-    val trainings by trainingViewModel.trainings.collectAsState()
+    val trainings by
+    trainingViewModel
+        .trainings
+        .collectAsState()
 
-    val darkMode by settingsViewModel.darkMode.collectAsState()
+    val darkMode by
+    settingsViewModel
+        .darkMode
+        .collectAsState()
+
+    val weatherUiState by
+    weatherViewModel
+        .uiState
+        .collectAsState()
+
+    /*
+     * Por ahora usamos coordenadas fijas de Quito.
+     *
+     * Más adelante estas coordenadas
+     * vendrán del GPS del celular.
+     */
+
+    LaunchedEffect(Unit) {
+
+        weatherViewModel.loadWeather(
+            latitude = -0.1807,
+            longitude = -78.4678
+        )
+    }
 
     NavHost(
         navController = navController,
@@ -33,6 +63,7 @@ fun AppNavigation(
 
             HomeScreen(
                 trainings = trainings,
+                weatherUiState = weatherUiState,
 
                 onAddTraining = {
                     navController.navigate(
@@ -49,6 +80,14 @@ fun AppNavigation(
                 onDeleteTraining = { training ->
                     trainingViewModel.deleteTraining(
                         training
+                    )
+                },
+
+                onRetryWeather = {
+
+                    weatherViewModel.loadWeather(
+                        latitude = -0.1807,
+                        longitude = -78.4678
                     )
                 }
             )
@@ -76,7 +115,6 @@ fun AppNavigation(
         composable("settings") {
 
             SettingsScreen(
-
                 darkMode = darkMode,
 
                 onDarkModeChange =
