@@ -153,6 +153,12 @@ com.example.swimtrack
 └── MainActivity
 ```
 
+## Diagrama de arquitectura
+
+El siguiente diagrama representa la arquitectura general utilizada en SwimTrack y la relación entre la interfaz, los ViewModel, los Repository y las diferentes fuentes de datos.
+
+![Diagrama de arquitectura](./docs/diagrama_arquitectura.png)
+
 ---
 
 ## Tecnologías utilizadas
