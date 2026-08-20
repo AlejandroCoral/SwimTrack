@@ -20,12 +20,17 @@ import com.example.swimtrack.viewmodel.TrainingViewModel
 import com.example.swimtrack.viewmodel.TrainingViewModelFactory
 import com.example.swimtrack.viewmodel.WeatherViewModel
 import com.example.swimtrack.viewmodel.WeatherViewModelFactory
+import com.example.swimtrack.repository.LocationRepository
+import com.example.swimtrack.viewmodel.LocationViewModel
+import com.example.swimtrack.viewmodel.LocationViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var trainingViewModel: TrainingViewModel
     private lateinit var settingsViewModel: SettingsViewModel
     private lateinit var weatherViewModel: WeatherViewModel
+
+    private lateinit var locationViewModel: LocationViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,6 +102,28 @@ class MainActivity : ComponentActivity() {
                 weatherFactory
             )[WeatherViewModel::class.java]
 
+
+        // -------------------------
+// UBICACIÓN
+// -------------------------
+
+        val locationRepository =
+            LocationRepository(
+                applicationContext
+            )
+
+        val locationFactory =
+            LocationViewModelFactory(
+                locationRepository
+            )
+
+        locationViewModel =
+            ViewModelProvider(
+                this,
+                locationFactory
+            )[LocationViewModel::class.java]
+
+
         // -------------------------
         // COMPOSE
         // -------------------------
@@ -116,7 +143,8 @@ class MainActivity : ComponentActivity() {
                 AppNavigation(
                     trainingViewModel = trainingViewModel,
                     settingsViewModel = settingsViewModel,
-                    weatherViewModel = weatherViewModel
+                    weatherViewModel = weatherViewModel,
+                    locationViewModel = locationViewModel
                 )
             }
         }

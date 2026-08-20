@@ -13,12 +13,15 @@ import com.example.swimtrack.ui.screens.SettingsScreen
 import com.example.swimtrack.viewmodel.SettingsViewModel
 import com.example.swimtrack.viewmodel.TrainingViewModel
 import com.example.swimtrack.viewmodel.WeatherViewModel
+import com.example.swimtrack.viewmodel.LocationUiState
+import com.example.swimtrack.viewmodel.LocationViewModel
 
 @Composable
 fun AppNavigation(
     trainingViewModel: TrainingViewModel,
     settingsViewModel: SettingsViewModel,
-    weatherViewModel: WeatherViewModel
+    weatherViewModel: WeatherViewModel,
+    locationViewModel: LocationViewModel
 ) {
 
     val navController =
@@ -39,6 +42,11 @@ fun AppNavigation(
         .uiState
         .collectAsState()
 
+    val locationUiState by
+    locationViewModel
+        .uiState
+        .collectAsState()
+
     /*
      * Por ahora usamos coordenadas fijas de Quito.
      *
@@ -46,12 +54,18 @@ fun AppNavigation(
      * vendrán del GPS del celular.
      */
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(locationUiState) {
 
-        weatherViewModel.loadWeather(
-            latitude = -0.1807,
-            longitude = -78.4678
-        )
+        if (locationUiState is LocationUiState.Success) {
+
+            val location =
+                locationUiState as LocationUiState.Success
+
+            weatherViewModel.loadWeather(
+                latitude = location.latitude,
+                longitude = location.longitude
+            )
+        }
     }
 
     NavHost(
@@ -64,6 +78,7 @@ fun AppNavigation(
             HomeScreen(
                 trainings = trainings,
                 weatherUiState = weatherUiState,
+                locationUiState = locationUiState,
 
                 onAddTraining = {
                     navController.navigate(
@@ -89,7 +104,11 @@ fun AppNavigation(
                         latitude = -0.1807,
                         longitude = -78.4678
                     )
-                }
+                },
+
+                onRequestLocation = {
+                    locationViewModel.loadCurrentLocation()
+                },
             )
         }
 

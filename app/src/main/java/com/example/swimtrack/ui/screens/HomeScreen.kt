@@ -1,5 +1,9 @@
 package com.example.swimtrack.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,20 +20,106 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.example.swimtrack.data.local.TrainingEntity
+import com.example.swimtrack.viewmodel.LocationUiState
 import com.example.swimtrack.viewmodel.WeatherUiState
 
 @Composable
 fun HomeScreen(
     trainings: List<TrainingEntity>,
     weatherUiState: WeatherUiState,
+    locationUiState: LocationUiState,
     onAddTraining: () -> Unit,
     onSettings: () -> Unit,
     onDeleteTraining: (TrainingEntity) -> Unit,
-    onRetryWeather: () -> Unit
+    onRetryWeather: () -> Unit,
+    onRequestLocation: () -> Unit
 ) {
+
+    val context = LocalContext.current
+
+    var permissionDenied by remember {
+        mutableStateOf(false)
+    }
+
+    val locationPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+
+            val fineLocationGranted =
+                permissions[
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ] == true
+
+            val coarseLocationGranted =
+                permissions[
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ] == true
+
+            if (
+                fineLocationGranted ||
+                coarseLocationGranted
+            ) {
+
+                permissionDenied = false
+                onRequestLocation()
+
+            } else {
+
+                permissionDenied = true
+            }
+        }
+
+    /*
+     * Al abrir Home verificamos si ya existe
+     * permiso de ubicación.
+     *
+     * Si existe, obtenemos la ubicación.
+     * Si no, Android mostrará la solicitud.
+     */
+
+    LaunchedEffect(Unit) {
+
+        val fineLocationGranted =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+        val coarseLocationGranted =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+        if (
+            fineLocationGranted ||
+            coarseLocationGranted
+        ) {
+
+            onRequestLocation()
+
+        } else {
+
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -47,7 +137,117 @@ fun HomeScreen(
         )
 
         /*
-         * TARJETA DEL CLIMA
+         * UBICACIÓN
+         */
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+
+                Text(
+                    text = "Ubicación",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
+
+                if (permissionDenied) {
+
+                    Text(
+                        text =
+                            "El permiso de ubicación fue rechazado. " +
+                                    "SwimTrack necesita la ubicación para consultar " +
+                                    "las condiciones meteorológicas de tu zona."
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    Button(
+                        onClick = {
+
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        }
+                    ) {
+                        Text("Permitir ubicación")
+                    }
+
+                } else {
+
+                    when (locationUiState) {
+
+                        is LocationUiState.Idle -> {
+
+                            Text(
+                                text =
+                                    "Esperando permiso de ubicación..."
+                            )
+                        }
+
+                        is LocationUiState.Loading -> {
+
+                            Row(
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(12.dp)
+                            ) {
+
+                                CircularProgressIndicator()
+
+                                Text(
+                                    text =
+                                        "Obteniendo ubicación..."
+                                )
+                            }
+                        }
+
+                        is LocationUiState.Success -> {
+
+                            Text(
+                                text =
+                                    "Ubicación obtenida correctamente"
+                            )
+                        }
+
+                        is LocationUiState.Error -> {
+
+                            Text(
+                                text =
+                                    locationUiState.message
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(8.dp)
+                            )
+
+                            Button(
+                                onClick = onRequestLocation
+                            ) {
+                                Text("Reintentar ubicación")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        /*
+         * CLIMA
          */
 
         Card(
@@ -90,14 +290,6 @@ fun HomeScreen(
                             weatherUiState.weather.current
 
                         Text(
-                            text = "Ubicación: Quito"
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(4.dp)
-                        )
-
-                        Text(
                             text =
                                 "Temperatura: ${weather.temperature} °C"
                         )
@@ -116,7 +308,8 @@ fun HomeScreen(
                     is WeatherUiState.Error -> {
 
                         Text(
-                            text = weatherUiState.message
+                            text =
+                                weatherUiState.message
                         )
 
                         Spacer(
@@ -126,7 +319,7 @@ fun HomeScreen(
                         Button(
                             onClick = onRetryWeather
                         ) {
-                            Text("Reintentar")
+                            Text("Reintentar clima")
                         }
                     }
                 }
@@ -167,7 +360,7 @@ fun HomeScreen(
         )
 
         /*
-         * LISTA DE ENTRENAMIENTOS
+         * ENTRENAMIENTOS
          */
 
         Text(
@@ -182,7 +375,8 @@ fun HomeScreen(
         if (trainings.isEmpty()) {
 
             Text(
-                text = "No hay entrenamientos registrados"
+                text =
+                    "No hay entrenamientos registrados"
             )
 
         } else {
@@ -198,7 +392,8 @@ fun HomeScreen(
                 ) { training ->
 
                     Card(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier =
+                            Modifier.fillMaxWidth()
                     ) {
 
                         Column(
